@@ -6,6 +6,12 @@ const url = process.env.DATABASE_URL;
 // sslmode=require as libpq reads it: encrypted, the certificate is not verified.
 const ssl = url && /sslmode=(require|prefer)/.test(url) ? { rejectUnauthorized: false } : undefined;
 const pool = url ? new Pool({ connectionString: url.replace(/[?&]sslmode=[^&]*/, ""), ssl, max: 3 }) : null;
+// The same database through the PG* parts alone (no URL), as libpq-style clients read them.
+const partsSsl = /^(require|prefer)$/.test(process.env.PGSSLMODE || "") ? { rejectUnauthorized: false } : undefined;
+const byParts = ["PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD"].every((n) => process.env[n])
+  ? new Pool({ host: process.env.PGHOST, port: Number(process.env.PGPORT), database: process.env.PGDATABASE,
+      user: process.env.PGUSER, password: process.env.PGPASSWORD, ssl: partsSsl, max: 2 })
+  : null;
 let ready = null;
 
 function schema() {
@@ -23,6 +29,11 @@ http.createServer(async (request, response) => {
   try {
     if (!pool) return send(response, 503, { db: "none", detail: "no DATABASE_URL" });
     await schema();
+    if (pathname === "/api/health" && searchParams.get("via") === "parts") {
+      if (!byParts) return send(response, 503, { db: "none", detail: "no PG variables" });
+      const { rows } = await byParts.query("SELECT count(*)::int AS n FROM notes");
+      return send(response, 200, { db: "ok", via: "PG*", notes: rows[0].n, app: "node-pg" });
+    }
     if (pathname === "/api/health") {
       await pool.query("SELECT 1");
       return send(response, 200, { db: "ok", via: "DATABASE_URL", app: "node-pg" });

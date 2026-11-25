@@ -6,8 +6,8 @@ repository: the apps get their connection from Lily at deploy time.
 
 | Folder | Stack | Reads |
 |---|---|---|
-| `node-pg` | Node `http` + `pg` | `DATABASE_URL` |
-| `vite-api` | Vite frontend + Node API with `pg` | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE` |
+| `node-pg` | Node `http` + `pg` | `DATABASE_URL`; `/api/health?via=parts` the `PG*` parts alone |
+| `vite-api` | Vite frontend (Lily serves it as a static site; its `server.js` is for local use) | – |
 | `next-prisma` | Next.js 14 + Prisma 5 | `DATABASE_URL`, `DIRECT_URL` (migrations) |
 
 Every app answers `GET /api/notes` (count and last five), `POST /api/notes?text=…` (adds one) and
