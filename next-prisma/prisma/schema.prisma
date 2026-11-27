@@ -14,4 +14,7 @@ model Note {
   id   Int      @id @default(autoincrement())
   text String
   at   DateTime @default(now())
+  tag  String?
+
+  @@index([at])
 }
